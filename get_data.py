@@ -2,9 +2,17 @@ import bitfinex
 import pandas as pd
 import numpy as np
 import datetime
+import logging
 import time
 import os
 
+
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+formatter = logging.Formatter('[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s','%m-%d %H:%M:%S')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 # Create a function to fetch the data
 def fetch_data(start=1364767200000, stop=1545346740000, symbol='btcusd', interval='1m', tick_limit=1000, step=60000000):
@@ -19,7 +27,7 @@ def fetch_data(start=1364767200000, stop=1545346740000, symbol='btcusd', interva
         end = start + step
         res = api_v2.candles(symbol=symbol, interval=interval, limit=tick_limit, start=start, end=end)
         data.extend(res)
-        print('Retrieving data from {} to {} for {}'.format(pd.to_datetime(start, unit='ms'),
+        logger.info('Retrieving data from {} to {} for {}'.format(pd.to_datetime(start, unit='ms'),
                                                             pd.to_datetime(end, unit='ms'), symbol))
         time.sleep(1.5)
     return data
@@ -63,4 +71,4 @@ for pair in pairs:
     df.to_csv('{}/bitfinex_{}.csv'.format(save_path, pair))
     print('Done saving data. Moving to next pair.')
 
-print('Done retrieving data')
+logger.info('Done retrieving data')
