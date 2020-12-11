@@ -47,16 +47,19 @@ t_stop = time.mktime(t_stop.timetuple()) * 1000
 api_v1 = bitfinex.bitfinex_v1.api_v1()
 pairs = api_v1.symbols()
 
-save_path = './data'
+SAVE_DIR = './data'
 
-if os.path.exists(save_path) is False:
-    os.mkdir(save_path)
+if os.path.exists(SAVE_DIR) is False:
+    os.mkdir(SAVE_DIR)
 
 for pair in pairs:
-    csv_path = '{}/bitfinex_{}.csv'.format(save_path, pair)
+    csv_path = '{}/{}.csv'.format(SAVE_DIR, pair)
     
     if os.path.exists(csv_path):
-        logger.info("pair data exists: {}".format(csv_path))
+        logger.info("data file exists: {}".format(csv_path))
+    else:
+        logger.info("data file does not exists, creating a new csv: {}".format(csv_path))
+
     pair_data = fetch_data(start=t_start, stop=t_stop, symbol=pair, interval=bin_size, tick_limit=limit, step=time_step)
 
     # Remove error messages
