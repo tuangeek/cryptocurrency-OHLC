@@ -31,7 +31,6 @@ async def candles(symbol='btcusd', interval='1m', limit=1000, start=None, end=No
 # Create a function to fetch the data
 async def fetch_data(start=1364767200000, stop=1545346740000, symbol='btcusd', interval='1m', tick_limit=1000, step=60000000):
     # Create api instance
-    api_v2 = bitfinex.bitfinex_v2.api_v2()
 
     data = []
     tasks = []
