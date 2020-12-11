@@ -1,5 +1,4 @@
 requests
-bitfinex-tencars
 pandas
 aiohttp[speedups]
 ujson
