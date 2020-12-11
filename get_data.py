@@ -14,46 +14,50 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter('[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s','%m-%d %H:%M:%S')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 # function to read csv files
 def _read_file(filename):
     return pd.read_csv(join(dirname(__file__), filename), index_col=0, parse_dates=True, infer_datetime_format=True)
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
 # function call api
 async def candles(symbol='btcusd', interval='1m', limit=1000, start=None, end=None, sort=-1):
     async with aiohttp.ClientSession() as session:
-        resp = await session.get('https://api.bitfinex.com/v2/candles/trade:{}:t{}/hist?limit={}&start={}&end={}&sort=-1'.format(interval, symbol.upper(), limit, start, end, sort))
+        url = 'https://api.bitfinex.com/v2/candles/trade:{}:t{}/hist?limit={}&start={:.0f}&end={:.0f}&sort=-1'.format(interval, symbol.upper(), limit, start, end, sort)
+        logger.debug("getting url: {}".format(url))
+        resp = await session.get(url)
         results = await resp.json()
-        return results
+        if "error" in results:
+            # recursive retry
+            logger.error("Got rate limited. Trying symbol: {} start: {} end: {} again".format(symbol, start, end))
+            return await candles(symbol=symbol, interval=interval, limit=limit, start=start, end=end)
+        else:
+            return results
 
 # Create a function to fetch the data
 async def fetch_data(start=1364767200000, stop=1545346740000, symbol='btcusd', interval='1m', tick_limit=1000, step=60000000):
     # Create api instance
 
-    data = []
+    datas = []
     tasks = []
-    
-    for x in np.arange(start, stop, step):
-        tasks.append(x)
-    print(len(tasks))
-    """
-    start - step
-    while start < stop:
 
-        start = start + step
-        end = start + step
-        res = await candles(symbol=symbol, interval=interval, limit=tick_limit, start=start, end=end)
-        data.extend(res)
-        logger.info('Retrieving data from {} to {} for {}'.format(pd.to_datetime(start, unit='ms'),
-                                                            pd.to_datetime(end, unit='ms'), symbol))
-        time.sleep(1.5)
-    return data
-    """
+    # build a tasks list
+    for current in np.arange(start, stop, step):
+        logger.debug(current)
+        tasks.append(candles(symbol=symbol, interval=interval, limit=tick_limit, start=current, end=current+step))
 
+    # break up the task list into chunks
+    for task_chunks in chunks(tasks, 90):
+        resps = await asyncio.gather(*task_chunks)
+        for resp in resps:
+            datas.extend(resp)
 
-
+    return datas
 
 async def main():
     # Define query parameters
