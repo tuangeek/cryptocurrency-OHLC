@@ -53,6 +53,10 @@ if os.path.exists(save_path) is False:
     os.mkdir(save_path)
 
 for pair in pairs:
+    csv_path = '{}/bitfinex_{}.csv'.format(save_path, pair)
+    
+    if os.path.exists(csv_path):
+        logger.info("pair data exists: {}".format(csv_path))
     pair_data = fetch_data(start=t_start, stop=t_stop, symbol=pair, interval=bin_size, tick_limit=limit, step=time_step)
 
     # Remove error messages
@@ -68,8 +72,7 @@ for pair in pairs:
     df.sort_index(inplace=True)
 
     logger.info('Done downloading data. Saving to .csv.')
-    save_path = '{}/bitfinex_{}.csv'.format(save_path, pair)
-    df.to_csv(save_path)
+    df.to_csv(csv_path)
     logger.info('Done saving data. Moving to next pair.')
 
 logger.info('Done retrieving data')
