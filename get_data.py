@@ -38,7 +38,7 @@ bin_size = '1m'
 limit = 1000
 time_step = 1000 * 60 * limit
 
-t_start = datetime.datetime(2013, 4, 1, 0, 0)
+t_start = datetime.datetime(2010, 1, 1, 0, 0)
 t_start = time.mktime(t_start.timetuple()) * 1000
 
 t_stop = datetime.datetime.now()
@@ -67,8 +67,9 @@ for pair in pairs:
     df.set_index('time', inplace=True)
     df.sort_index(inplace=True)
 
-    print('Done downloading data. Saving to .csv.')
-    df.to_csv('{}/bitfinex_{}.csv'.format(save_path, pair))
-    print('Done saving data. Moving to next pair.')
+    logger.info('Done downloading data. Saving to .csv.')
+    save_path = '{}/bitfinex_{}.csv'.format(save_path, pair)
+    df.to_csv(save_path)
+    logger.info('Done saving data. Moving to next pair.')
 
 logger.info('Done retrieving data')
