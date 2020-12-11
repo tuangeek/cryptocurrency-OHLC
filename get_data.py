@@ -7,7 +7,7 @@ import os
 import asyncio
 import aiohttp
 from os.path import dirname, join
-
+import random
 
 logger = logging.getLogger()
 handler = logging.StreamHandler()
@@ -16,25 +16,40 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
+PROXIES = os.environ.get("PROXIES", None)
+if PROXIES:
+    # split the proxies by comma
+    PROXIES = PROXIES.split(",")
+DELAY = 10
+
 # function to read csv files
 def _read_file(filename):
     return pd.read_csv(join(dirname(__file__), filename), index_col=0, parse_dates=True, infer_datetime_format=True)
 
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
+    chunks = []
     for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+        chunks.append(lst[i:i + n])
+    return chunks
 
 # function call api
 async def candles(symbol='btcusd', interval='1m', limit=1000, start=None, end=None, sort=-1):
     async with aiohttp.ClientSession() as session:
         url = 'https://api.bitfinex.com/v2/candles/trade:{}:t{}/hist?limit={}&start={:.0f}&end={:.0f}&sort=-1'.format(interval, symbol.upper(), limit, start, end, sort)
         logger.debug("getting url: {}".format(url))
-        resp = await session.get(url)
+        if PROXIES:
+            proxy = random.choice(PROXIES)
+            logger.debug("got random proxy: {}".format(proxy))
+            resp = await session.get(url, proxy=proxy)
+        else:
+            resp = await session.get(url)
+
         results = await resp.json()
         if "error" in results:
-            # recursive retry
+            # recursive retry and delay
             logger.error("Got rate limited. Trying symbol: {} start: {} end: {} again".format(symbol, start, end))
+            await asyncio.sleep(DELAY)
             return await candles(symbol=symbol, interval=interval, limit=limit, start=start, end=end)
         else:
             return results
@@ -52,7 +67,7 @@ async def fetch_data(start=1364767200000, stop=1545346740000, symbol='btcusd', i
         tasks.append(candles(symbol=symbol, interval=interval, limit=tick_limit, start=current, end=current+step))
 
     # break up the task list into chunks
-    for task_chunks in chunks(tasks, 90):
+    for task_chunks in chunks(tasks, 10):
         resps = await asyncio.gather(*task_chunks)
         for resp in resps:
             datas.extend(resp)
@@ -65,7 +80,7 @@ async def main():
     limit = 1000
     time_step = 1000 * 60 * limit
     
-    t_start = datetime.datetime(2010, 1, 1, 0, 0)
+    t_start = datetime.datetime(2013, 1, 1, 0, 0)
     t_start = time.mktime(t_start.timetuple()) * 1000
     
     t_stop = datetime.datetime.now()
