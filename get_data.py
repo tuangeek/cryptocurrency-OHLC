@@ -53,28 +53,30 @@ async def fetch_data(start=1364767200000, stop=1545346740000, symbol='btcusd', i
     return data
     """
 
-# Define query parameters
-bin_size = '1m'
-limit = 1000
-time_step = 1000 * 60 * limit
-
-t_start = datetime.datetime(2010, 1, 1, 0, 0)
-t_start = time.mktime(t_start.timetuple()) * 1000
-
-t_stop = datetime.datetime.now()
-t_stop = time.mktime(t_stop.timetuple()) * 1000
-
-api_v1 = bitfinex.bitfinex_v1.api_v1()
-pairs = api_v1.symbols()
-
-SAVE_DIR = './data'
-
-if os.path.exists(SAVE_DIR) is False:
-    os.mkdir(SAVE_DIR)
 
 
 
 async def main():
+    # Define query parameters
+    bin_size = '1m'
+    limit = 1000
+    time_step = 1000 * 60 * limit
+    
+    t_start = datetime.datetime(2010, 1, 1, 0, 0)
+    t_start = time.mktime(t_start.timetuple()) * 1000
+    
+    t_stop = datetime.datetime.now()
+    t_stop = time.mktime(t_stop.timetuple()) * 1000
+   
+    async with aiohttp.ClientSession() as session:
+        resp = await session.get('https://api.bitfinex.com/v1/symbols')
+        pairs = await resp.json()
+    
+    SAVE_DIR = './data'
+    
+    if os.path.exists(SAVE_DIR) is False:
+        os.mkdir(SAVE_DIR)
+
     for pair in pairs:
         csv_path = '{}/{}.csv'.format(SAVE_DIR, pair)
     
