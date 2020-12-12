@@ -38,15 +38,19 @@ async def candles(symbol='btcusd', interval='1m', limit=1000, start=None, end=No
     async with aiohttp.ClientSession() as session:
         url = 'https://api.bitfinex.com/v2/candles/trade:{}:t{}/hist?limit={}&start={:.0f}&end={:.0f}&sort=-1'.format(interval, symbol.upper(), limit, start, end, sort)
         logger.debug("getting url: {}".format(url))
-        if PROXIES:
-            proxy = random.choice(PROXIES)
-            logger.debug("got random proxy: {}".format(proxy))
-            resp = await session.get(url, proxy=proxy)
-        else:
-            resp = await session.get(url)
-
-        results = await resp.json()
-        if "error" in results:
+        results = None
+        try:
+            if PROXIES:
+                proxy = random.choice(PROXIES)
+                logger.debug("got random proxy: {}".format(proxy))
+                resp = await session.get(url, proxy=proxy)
+            else:
+                resp = await session.get(url)
+            results = await resp.json()
+        except Exception as e:
+            logger.error("Failed to get resp: {e}")
+ 
+        if (not results) || "error" in results:
             # recursive retry and delay
             logger.error("Got rate limited. Trying symbol: {} start: {} end: {} again".format(symbol, start, end))
             await asyncio.sleep(DELAY)
