@@ -50,7 +50,7 @@ async def candles(symbol='btcusd', interval='1m', limit=1000, start=None, end=No
         except Exception as e:
             logger.error("Failed to get resp: {e}")
  
-        if (not results) || "error" in results:
+        if (not results) or "error" in results:
             # recursive retry and delay
             logger.error("Got rate limited. Trying symbol: {} start: {} end: {} again".format(symbol, start, end))
             await asyncio.sleep(DELAY)
