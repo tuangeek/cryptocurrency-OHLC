@@ -20,7 +20,7 @@ PROXIES = os.environ.get("PROXIES", None)
 if PROXIES:
     # split the proxies by comma
     PROXIES = PROXIES.split(",")
-DELAY = 10
+DELAY = 60
 
 # function to read csv files
 def _read_file(filename):
@@ -46,14 +46,15 @@ async def candles(symbol='btcusd', interval='1m', limit=1000, start=None, end=No
                 resp = await session.get(url, proxy=proxy)
             else:
                 resp = await session.get(url)
+            await asyncio.sleep(1)
             results = await resp.json()
+            return results
         except Exception as e:
-            logger.error("Failed to get resp: {e}")
+            logger.error("Failed to get resp: {}".format(e))
  
         if (not results) or "error" in results:
-            # recursive retry and delay
+            # recursive retry
             logger.error("Got rate limited. Trying symbol: {} start: {} end: {} again".format(symbol, start, end))
-            await asyncio.sleep(DELAY)
             return await candles(symbol=symbol, interval=interval, limit=limit, start=start, end=end)
         else:
             return results
@@ -67,14 +68,16 @@ async def fetch_data(start=1364767200000, stop=1545346740000, symbol='btcusd', i
 
     # build a tasks list
     for current in np.arange(start, stop, step):
-        logger.debug(current)
-        tasks.append(candles(symbol=symbol, interval=interval, limit=tick_limit, start=current, end=current+step))
+        #tasks.append(candles(symbol=symbol, interval=interval, limit=tick_limit, start=current, end=current+step))
+        resp = await candles(symbol=symbol, interval=interval, limit=tick_limit, start=current, end=current+step)
+        datas.extend(resp)
 
     # break up the task list into chunks
-    for task_chunks in chunks(tasks, 10):
-        resps = await asyncio.gather(*task_chunks)
-        for resp in resps:
-            datas.extend(resp)
+    #for task_chunks in chunks(tasks, 10):
+    #    resps = await asyncio.gather(*task_chunks)
+    #    for resp in resps:
+    #        datas.extend(resp)
+
 
     return datas
 
